@@ -115,7 +115,9 @@ def _warning_on_one_line(message, category, filename, lineno, file=None,
 warnings.formatwarning = _warning_on_one_line
 
 # Verify smartctl is on the system path and meets the minimum required version
-_stdout = check_output('smartctl --version').decode('UTF-8')
+cmd = Popen('smartctl --version', shell=True, stdout=PIPE, stderr=PIPE)
+_stdout, _stderr = cmd.communicate()
+_stdout = _stdout.decode('UTF-8')
 if _stdout == '':
     raise Exception(
         "Required package 'smartmontools' is not installed, or 'smartctl'\n"
