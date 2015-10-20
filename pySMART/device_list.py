@@ -94,6 +94,7 @@ class DeviceList(object):
         cmd = Popen('smartctl --scan-open', shell=True,
                     stdout=PIPE, stderr=PIPE)
         _stdout, _stderr = cmd.communicate()
+        _stdout = _stdout.encode('UTF-8')
         for line in _stdout.split('\n'):
             if not ('failed:' in line or line == ''):
                 name = line.split(' ')[0].replace('/dev/', '')
