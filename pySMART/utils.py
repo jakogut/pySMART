@@ -56,7 +56,8 @@ smartctl_type = {
     'sas' : 'scsi',
     'sat' : 'sat',
     'sata' : 'ata',
-    'scsi' : 'scsi'
+    'scsi' : 'scsi',
+    'usbprolific' : 'usbprolific'       # this is a controller used in USB3 to SATA external HDD cases
 }
 """
 **(dict of str):** Contains actual interface types (ie: sas, csmi) as keys and
