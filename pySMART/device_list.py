@@ -32,7 +32,7 @@ class DeviceList(object):
     """
     Represents a list of all the storage devices connected to this computer.
     """
-    def __init__(self, init=True):
+    def __init__(self, init=True, dofulldevicescan=True):
         """
         Instantiates and optionally initializes the `DeviceList`.
 
@@ -47,8 +47,14 @@ class DeviceList(object):
         **(list of `Device`):** Contains all storage devices detected during
         instantiation, as `Device` objects.
         """
+        self.simpledevicelist = []
+        """
+        **(list of dict):** Contains a list of storage devices detected during
+        instantiation, by name and interface. This is meant to be used for
+        better GUI integration (ie. calling Device() manually, one by one).
+        """
         if init:
-            self._initialize()
+            self._initialize(dofulldevicescan)
 
     def __repr__(self):
         """Define a basic representation of the class object."""
@@ -82,32 +88,48 @@ class DeviceList(object):
         self.devices[:] = [v for i, v in enumerate(self.devices)
                            if i not in to_delete]
 
-    def _initialize(self):
+    def _initialize(self, dofulldevicescan=True):
         """
         Scans system busses for attached devices and add them to the
         `DeviceList` as `Device` objects.
         """
         # On Windows machines we should re-initialize the system busses
-        # before scanning for disks
+        # before scanning for disks; coincidentally this wakes up all
+        # USB storage devices as well and can take some time.
+        #
+        # XXX The rescan_* and following Popen call take 3 seconds on Windows
+        # when lots of devices are plugged in (including USB)
         if OS == 'Windows':
             rescan_device_busses()
         cmd = Popen('smartctl --scan-open', shell=True,
                     stdout=PIPE, stderr=PIPE)
+        # XXX communicate() takes another second
         _stdout, _stderr = cmd.communicate()
         _stdout = _stdout.decode('UTF-8')
+        devlist = {}
         for line in _stdout.split('\n'):
             if not ('failed:' in line or line == ''):
                 name = line.split(' ')[0].replace('/dev/', '')
                 # CSMI devices are explicitly of the 'csmi' type and do not
                 # require further disambiguation
-                if name[0:4] == 'csmi':
-                    self.devices.append(Device(name, interface='csmi'))
                 # Other device types will be disambiguated by Device.__init__
-                else:
-                    self.devices.append(Device(name))
+                interface = None
+                if name[0:4] == 'csmi':
+                  interface = 'csmi'
+                if dofulldevicescan == True:
+                  # XXX The following Device() call takes between 1.3-1.7 seconds to complete
+                  self.devices.append(Device(name, interface=interface))
+                self.simpledevicelist.append({ 'name': name, 'interface': interface })
         # Remove duplicates and unwanted devices (optical, etc.) from the list
         self._cleanup()
         # Sort the list alphabetically by device name
+        self.simpledevicelist.sort(key=lambda name: name)
         self.devices.sort(key=lambda device: device.name)
+
+    def list_devicenames(self):
+      """
+      Returns the list of devices output by --scan-open above as a dictionary
+      """
+      pass
 
 __all__ = ['DeviceList']
